@@ -69,8 +69,8 @@ public class IntField implements Field {
         case LESS_THAN_OR_EQ:
             return value <= iVal.value;
 
-    case LIKE:
-        return value == iVal.value;
+	case LIKE:
+	    return value == iVal.value;
         }
 
         return false;
@@ -80,7 +80,7 @@ public class IntField implements Field {
      * Return the Type of this field.
      * @return Type.INT_TYPE
      */
-	public Type getType() {
-		return Type.INT_TYPE;
-	}
+    public Type getType() {
+	return Type.INT_TYPE;
+    }
 }
