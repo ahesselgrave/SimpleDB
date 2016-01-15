@@ -17,13 +17,42 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Threadsafe
  */
 public class Catalog {
+    public class Table {
+	private DbFile mFile;
+	private String mName;
+	private String mPkeyField;
+
+	public Table(DbFile file, String name, String pkeyField) {
+	    mFile = file;
+	    mName = name;
+	    mPkeyField = pkeyField;
+	}
+
+	public String getName() {
+	    return mName;
+	}
+
+	public DbFile getFile() {
+	    return mFile;
+	}
+	
+	public String getPkeyField() {
+	    return mPkeyField;
+	}
+
+	public int getId() {
+	    return mFile.getId();
+	}
+    }
+
+    ArrayList<Table> mTables;
 
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
     public Catalog() {
-        // some code goes here
+	mTables = new ArrayList<Table>();
     }
 
     /**
@@ -36,7 +65,7 @@ public class Catalog {
      * conflict exists, use the last table to be added as the table for a given name.
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-        // some code goes here
+	mTables.add(new Table(file,name,pkeyField));
     }
 
     public void addTable(DbFile file, String name) {
@@ -59,8 +88,12 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public int getTableId(String name) throws NoSuchElementException {
-        // some code goes here
-        return 0;
+        for (Table t : mTables) {
+	    if(t.getName().equals(name)) {
+		return t.getId();
+	    }
+	}
+	throw new NoSuchElementException();
     }
 
     /**
@@ -70,8 +103,12 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+	for (Table t : mTables) {
+	    if (t.getId() == tableid) {
+		return t.getFile().getTupleDesc();
+	    }
+	}
+	throw new NoSuchElementException();
     }
 
     /**
@@ -81,30 +118,54 @@ public class Catalog {
      *     function passed to addTable
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+	for (Table t : mTables) {
+	    if(t.getId() == tableid) {
+		return t.getFile();
+	    }
+	}
+	throw new NoSuchElementException();
     }
 
-    public String getPrimaryKey(int tableid) {
-        // some code goes here
-        return null;
+    public String getPrimaryKey(int tableid) throws NoSuchElementException {
+	for (Table t : mTables) {
+	    if(t.getId() == tableid) {
+		return t.getPkeyField();
+	    }
+	}
+	throw new NoSuchElementException();
     }
 
     public Iterator<Integer> tableIdIterator() {
-        // some code goes here
-        return null;
+	Iterator<Integer> iter = new Iterator<Integer>() {
+	    private int index = 0; 
+
+	    @Override
+	    public boolean hasNext() {
+		return index < mTables.size();
+	    }
+
+	    @Override
+	    public Integer next() {
+		return mTables.get(index++).getId();
+	    }
+	};
+	return iter;
     }
 
-    public String getTableName(int id) {
-        // some code goes here
-        return null;
+    public String getTableName(int id) throws NoSuchElementException {
+	for (Table t : mTables) {
+	    if(t.getId() == id) {
+		return t.getName();
+	    }
+	}
+	throw new NoSuchElementException();
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
-        // some code goes here
-    }
-    
+	mTables.clear();
+    }    
+
     /**
      * Reads the schema from a file and creates the appropriate tables in the database.
      * @param catalogFile

@@ -10,9 +10,15 @@ import java.util.Iterator;
  * with the data for each field.
  */
 public class Tuple implements Serializable {
-
+    public static final int MAXSTRINGSIZE = 30;
+    
     private static final long serialVersionUID = 1L;
 
+    private TupleDesc mSchema;
+    private RecordId mRecordId;
+
+    private Field[] mFields;
+    
     /**
      * Create a new tuple with the specified schema (type).
      * 
@@ -21,15 +27,31 @@ public class Tuple implements Serializable {
      *            instance with at least one field.
      */
     public Tuple(TupleDesc td) {
-        // some code goes here
+        mSchema = td;
+	setFieldsAccordingToSchema();
     }
 
+    public void setFieldsAccordingToSchema() {
+	mFields = new Field[mSchema.numFields()];
+	for (int i = 0; i < mSchema.numFields(); i++) {
+	    switch (mSchema.getFieldType(i)) {
+	    case INT_TYPE:
+		mFields[i] = new IntField(0);
+		break;
+	    case STRING_TYPE:
+		mFields[i] = new StringField("", MAXSTRINGSIZE);
+		break;
+	    default:
+		// cry
+		break;
+	    }
+	}
+    }
     /**
      * @return The TupleDesc representing the schema of this tuple.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+	return mSchema;
     }
 
     /**
@@ -37,8 +59,7 @@ public class Tuple implements Serializable {
      *         be null.
      */
     public RecordId getRecordId() {
-        // some code goes here
-        return null;
+	return mRecordId;
     }
 
     /**
@@ -48,7 +69,7 @@ public class Tuple implements Serializable {
      *            the new RecordId for this tuple.
      */
     public void setRecordId(RecordId rid) {
-        // some code goes here
+	mRecordId = rid;
     }
 
     /**
@@ -60,7 +81,7 @@ public class Tuple implements Serializable {
      *            new value for the field.
      */
     public void setField(int i, Field f) {
-        // some code goes here
+	mFields[i] = f;
     }
 
     /**
@@ -70,8 +91,7 @@ public class Tuple implements Serializable {
      *            field index to return. Must be a valid index.
      */
     public Field getField(int i) {
-        // some code goes here
-        return null;
+        return mFields[i];
     }
 
     /**
@@ -83,8 +103,12 @@ public class Tuple implements Serializable {
      * where \t is any whitespace, except newline, and \n is a newline
      */
     public String toString() {
-        // some code goes here
-        throw new UnsupportedOperationException("Implement this");
+	String output = mFields[0].toString();
+	for (int i = 1; i < mFields.length; i++) {
+	    output += String.format(" %s", mFields[i].toString());
+	}
+	output += "\n";
+	return output;
     }
     
     /**
@@ -93,15 +117,33 @@ public class Tuple implements Serializable {
      * */
     public Iterator<Field> fields()
     {
-        // some code goes here
-        return null;
+	Iterator<Field> iter = new Iterator<Field>() {
+	    private int index = 0;
+
+	    @Override
+	    public boolean hasNext() {
+		return index < mFields.length;
+	    }
+
+	    @Override
+	    public Field next() {
+		return mFields[index++];
+	    }
+	    
+	    @Override
+	    public void remove() {
+		throw new UnsupportedOperationException();
+	    }
+	};
+        return iter;
     }
     
     /**
-     * reset the TupleDesc of thi tuple
+     * reset the TupleDesc of this tuple
      * */
     public void resetTupleDesc(TupleDesc td)
     {
-        // some code goes here
+        mSchema = td;
+	setFieldsAccordingToSchema();
     }
 }
