@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class BufferPool {
     /** Bytes per page, including header. */
+
     public static final int PAGE_SIZE = 4096;
 
     private static int pageSize = PAGE_SIZE;
@@ -25,6 +26,9 @@ public class BufferPool {
     other classes. BufferPool should use the numPages argument to the
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
+    
+    private static Page[] mPool;
+    
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -32,7 +36,7 @@ public class BufferPool {
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-        // some code goes here
+        mPool = new Page[numPages];
     }
     
     public static int getPageSize() {
@@ -61,9 +65,21 @@ public class BufferPool {
      */
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
-    }
+        // TODO: implement locking
+	for (Page p : mPool) {
+	    if (p != null && p.getId().equals(pid))
+		return p;
+	}
+	// Could not find page, so we must pull it and add to the buffer pool.
+	Page pulledPage = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
+	for (Page p : mPool) {
+	    if (p == null) {
+		p = pulledPage;
+	    }
+	}
+	// TODO: Eviction
+	return pulledPage;
+    } 
 
     /**
      * Releases the lock on a page.

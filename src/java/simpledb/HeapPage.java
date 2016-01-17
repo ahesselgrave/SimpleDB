@@ -306,14 +306,13 @@ public class HeapPage implements Page {
     public Iterator<Tuple> iterator() {
 	Iterator<Tuple> iter = new Iterator<Tuple>() {
 	    private int index = 0;
-	    
 	    @Override 
 	    public boolean hasNext() {
 		return index < (tuples.length - getNumEmptySlots());
 	    }
 
 	    @Override
-	    public Tuple next() {
+	    public Tuple next() throws NoSuchElementException{
 		return tuples[index++];
 	    }
 

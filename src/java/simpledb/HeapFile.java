@@ -14,6 +14,8 @@ import java.util.*;
  * @author Sam Madden
  */
 public class HeapFile implements DbFile {
+    private File mFile;
+    private TupleDesc mTupleDesc;
 
     /**
      * Constructs a heap file backed by the specified file.
@@ -23,7 +25,8 @@ public class HeapFile implements DbFile {
      *            file.
      */
     public HeapFile(File f, TupleDesc td) {
-        // some code goes here
+	mFile = f;
+	mTupleDesc = td;
     }
 
     /**
@@ -32,8 +35,7 @@ public class HeapFile implements DbFile {
      * @return the File backing this HeapFile on disk.
      */
     public File getFile() {
-        // some code goes here
-        return null;
+	return mFile;
     }
 
     /**
@@ -46,24 +48,43 @@ public class HeapFile implements DbFile {
      * @return an ID uniquely identifying this HeapFile.
      */
     public int getId() {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
+	return mFile.getAbsoluteFile().hashCode();
     }
 
     /**
      * Returns the TupleDesc of the table stored in this DbFile.
-     * 
+
      * @return TupleDesc of this DbFile.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
+	return mTupleDesc;
     }
 
     // see DbFile.java for javadocs
     public Page readPage(PageId pid) {
-        // some code goes here
-        return null;
+	try {
+	    RandomAccessFile raf = new RandomAccessFile(mFile, "r");
+	    int offset = BufferPool.PAGE_SIZE * pid.pageNumber();
+	    
+	    raf.seek(offset);
+	    byte[] data = new byte[BufferPool.PAGE_SIZE];
+	    
+	    //check if we go over
+	    if (BufferPool.PAGE_SIZE + offset > raf.length()) {
+		throw new IllegalArgumentException(String.format("Invalid pid, offset %d exceeds file page count %d", offset, numPages()));
+	    }
+
+	    for (int i = 0; i < data.length; i++) {
+		data[i] = raf.readByte();
+	    }
+
+	    Page page = new HeapPage((HeapPageId)pid, data);
+	    return page;
+	} catch (Exception e) {
+	    e.printStackTrace();
+	    throw new IllegalArgumentException("Something went wrong with pid" + pid.toString());
+	}
+	
     }
 
     // see DbFile.java for javadocs
@@ -76,8 +97,7 @@ public class HeapFile implements DbFile {
      * Returns the number of pages in this HeapFile.
      */
     public int numPages() {
-        // some code goes here
-        return 0;
+	return (int) mFile.length() / BufferPool.PAGE_SIZE;
     }
 
     // see DbFile.java for javadocs
@@ -98,8 +118,8 @@ public class HeapFile implements DbFile {
 
     // see DbFile.java for javadocs
     public DbFileIterator iterator(TransactionId tid) {
-        // some code goes here
-        return null;
+	DbFileIterator iter = new HeapFileIterator(this, tid, numPages());
+	return iter;
     }
 
 }
