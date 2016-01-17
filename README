@@ -1,0 +1,25 @@
+Report for Lab 1
+Alex Hesselgrave
+904273474
+
+My design decisions were pretty straightforward for this lab. For the most part
+the code consisted of trivial accessors or accessors through the Database 
+singletons. The most notable decision was to use a
+ConcurrentHashMap<PageId, Page> for the BufferPool. I started with an array
+for the cache but it became cumbersome to try and locate things, and down
+the line it would have been synchronization hell. Switching to the hashmap
+made my code far more readable and easier to implement.
+
+I did not make any changes to the API, nor is anything incomplete.
+
+I spent more time on this project than I would have liked. The biggest
+road block for me was my inability to read properly. I got stuck on 
+HeapFile#readPage because I saw that I couldn't use BufferPool methods.
+It took me longer than I care to admit to realize that a static int is not
+a method. Later in the project I was getting some Exception discrepancies 
+for the HeapFileIterator because I was reading the DbIterator, not the
+DbFileIterator. Beyond that, the project was pretty straightforward.
+
+I am also submitting this a day late, so I have used one pass day.
+
+Remaining days: 3
