@@ -76,7 +76,7 @@ public class HeapPage implements Page {
      * @return the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      */
     private int getHeaderSize() {        
-	return numSlots / 8;
+	return (int) Math.ceil(((double) getNumTuples()) / 8);
     }
     
     /** Return a view of this page before it was modified
@@ -286,9 +286,16 @@ public class HeapPage implements Page {
      */
     public boolean isSlotUsed(int i) {
 	// Each byte is 8 bits, so divide by 8 to get the index (int math floors for us)
-	byte b = header[i/8];
-	int bitnum = i % 8;
-	return (b & (0x1 << bitnum)) != 0;
+	if (i / 8 > numSlots)
+	    throw new IllegalArgumentException(String.format("Checking slot %d of %d", i, numSlots));
+	try {
+	    byte b = header[i/8];
+	    int bitnum = i % 8;
+	    return (b & (0x1 << bitnum)) != 0;
+	} catch (ArrayIndexOutOfBoundsException e) {
+	    System.err.println(String.format("Accessing slot %d of %d. Length of header is %d", i, numSlots, header.length));
+	    throw e;
+	}
     }
 
     /**

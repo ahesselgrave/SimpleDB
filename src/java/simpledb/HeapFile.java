@@ -80,7 +80,10 @@ public class HeapFile implements DbFile {
 
 	    Page page = new HeapPage((HeapPageId)pid, data);
 	    return page;
-	} catch (Exception e) {
+	} catch (FileNotFoundException e) {
+	    e.printStackTrace();
+	    throw new IllegalArgumentException("Something went wrong with pid" + pid.toString());
+	} catch (IOException e) {
 	    e.printStackTrace();
 	    throw new IllegalArgumentException("Something went wrong with pid" + pid.toString());
 	}

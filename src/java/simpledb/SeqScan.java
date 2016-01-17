@@ -11,6 +11,13 @@ public class SeqScan implements DbIterator {
 
     private static final long serialVersionUID = 1L;
 
+    private TransactionId mTransactionId;
+    private int mTableId;
+    private String mTableAlias;
+    private boolean mIsClosed = true;
+    private DbFile mDbFile;
+    private DbFileIterator mIterator;
+    
     /**
      * Creates a sequential scan over the specified table as a part of the
      * specified transaction.
@@ -28,7 +35,10 @@ public class SeqScan implements DbIterator {
      *            tableAlias.null, or null.null).
      */
     public SeqScan(TransactionId tid, int tableid, String tableAlias) {
-        // some code goes here
+	mTransactionId = tid;
+	mTableId = tableid;
+	mTableAlias = tableAlias;
+	mDbFile = Database.getCatalog().getDatabaseFile(tableid);
     }
 
     /**
@@ -37,7 +47,7 @@ public class SeqScan implements DbIterator {
      *       be the actual name of the table in the catalog of the database
      * */
     public String getTableName() {
-        return null;
+        return Database.getCatalog().getTableName(mTableId);
     }
     
     /**
@@ -45,8 +55,7 @@ public class SeqScan implements DbIterator {
      * */
     public String getAlias()
     {
-        // some code goes here
-        return null;
+	return mTableAlias;
     }
 
     /**
@@ -62,7 +71,8 @@ public class SeqScan implements DbIterator {
      *            tableAlias.null, or null.null).
      */
     public void reset(int tableid, String tableAlias) {
-        // some code goes here
+	mTableId = tableid;
+	mTableAlias = tableAlias;
     }
 
     public SeqScan(TransactionId tid, int tableid) {
@@ -70,7 +80,9 @@ public class SeqScan implements DbIterator {
     }
 
     public void open() throws DbException, TransactionAbortedException {
-        // some code goes here
+	mIsClosed = false;
+	mIterator = mDbFile.iterator(mTransactionId);
+	mIterator.open();
     }
 
     /**
@@ -83,27 +95,28 @@ public class SeqScan implements DbIterator {
      *         prefixed with the tableAlias string from the constructor.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+	return mDbFile.getTupleDesc();
     }
 
     public boolean hasNext() throws TransactionAbortedException, DbException {
-        // some code goes here
-        return false;
+	if (mIsClosed) throw new IllegalStateException("SeqScan must be opened first");
+        return mIterator.hasNext();
     }
 
     public Tuple next() throws NoSuchElementException,
             TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+	if (mIsClosed) throw new IllegalStateException("SeqScan must be opened first");
+	return mIterator.next();
     }
 
     public void close() {
-        // some code goes here
+	mIsClosed = true;
+	mIterator.close();
     }
 
     public void rewind() throws DbException, NoSuchElementException,
             TransactionAbortedException {
-        // some code goes here
+	if (mIsClosed) throw new IllegalStateException("SeqScan must be opened first");
+	mIterator.rewind();
     }
 }
