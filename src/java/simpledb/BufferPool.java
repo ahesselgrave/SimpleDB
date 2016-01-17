@@ -1,7 +1,6 @@
 package simpledb;
 
 import java.io.*;
-
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -27,8 +26,8 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
     
-    private static Page[] mPool;
-    
+    private ConcurrentHashMap<PageId, Page> mPageCache;
+    private final int mMaxPages;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -36,7 +35,8 @@ public class BufferPool {
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-        mPool = new Page[numPages];
+	mPageCache = new ConcurrentHashMap<PageId, Page>();
+	mMaxPages = numPages;
     }
     
     public static int getPageSize() {
@@ -65,19 +65,16 @@ public class BufferPool {
      */
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        // TODO: implement locking
-	for (Page p : mPool) {
-	    if (p != null && p.getId().equals(pid))
-		return p;
-	}
+	if (mPageCache.containsKey(pid))
+	    return mPageCache.get(pid);
+	
 	// Could not find page, so we must pull it and add to the buffer pool.
 	Page pulledPage = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
-	for (Page p : mPool) {
-	    if (p == null) {
-		p = pulledPage;
-	    }
+	// Evict if we are over capacity
+	if (mPageCache.size() >= mMaxPages) {
+	    evictPage();
 	}
-	// TODO: Eviction
+	mPageCache.put(pid, pulledPage);
 	return pulledPage;
     } 
 
@@ -206,7 +203,12 @@ public class BufferPool {
      */
     private synchronized  void evictPage() throws DbException {
         // some code goes here
-        // not necessary for lab1
+	// TODO: implement flushing in next lab
+	// Naively discards the first page it can
+	for (PageId p: mPageCache.keySet()) {
+	    mPageCache.remove(p);
+	    break;
+	}
     }
 
 }
