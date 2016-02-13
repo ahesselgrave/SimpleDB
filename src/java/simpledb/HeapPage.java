@@ -413,20 +413,10 @@ public class HeapPage implements Page {
 	 * Helper class that implements the Java Iterator for mTuples on a HeapPage.
 	 */
 	class HeapPageIterator implements Iterator<Tuple> {
-		/**
-		 * The current tuple index.
-		 */
-		int m_currentIdx = 0;
 
-		/**
-		 * The next tuple to return.
-		 */
-		Tuple m_next = null;
-
-		/**
-		 * The underlying HeapPage.
-		 */
-		HeapPage m_heapPage;
+		int mCurrentIndex = 0;
+		Tuple mNext;
+		HeapPage mHeapPage;
 
 		/**
 		 * Constructor sets the HeapPage for this iterator
@@ -435,20 +425,20 @@ public class HeapPage implements Page {
 		 *            The HeapPage to iterate over
 		 */
 		public HeapPageIterator(HeapPage p) {
-			m_heapPage = p;
+			mHeapPage = p;
 		}
 
 		/**
 		 * @return true if this iterator has another tuple, false otherwise.
 		 */
 		public boolean hasNext() {
-			if (m_next != null) {
+			if (mNext != null) {
 				return true;
 			}
 			try {
 				while (true) {
-					m_next = m_heapPage.getTuple(m_currentIdx++);
-					if (m_next != null)
+					mNext = mHeapPage.getTuple(mCurrentIndex++);
+					if (mNext != null)
 						return true;
 				}
 			} catch (NoSuchElementException e) {
@@ -462,18 +452,18 @@ public class HeapPage implements Page {
 		 *             If no next tuple exists.
 		 */
 		public Tuple next() {
-			Tuple next = m_next;
+			Tuple next = mNext;
 
 			if (next == null) {
 				if (hasNext()) {
-					next = m_next;
-					m_next = null;
+					next = mNext;
+					mNext = null;
 					return next;
 				} else {
 					throw new NoSuchElementException();
 				}
 			} else {
-				m_next = null;
+				mNext = null;
 				return next;
 			}
 		}

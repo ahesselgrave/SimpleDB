@@ -1,0 +1,27 @@
+Alexander Hesselgrave
+904273474
+
+
+My design decisions were pretty straightforward for this lab. For the
+Aggregators, I used HashMaps to hold and update aggregation values as I read
+through the tuples. HeapPage was easy to implement using the abstraction 
+methods for the bitmap header, and as such HeapFile was straightforward to 
+finish implementing too. Honestly, a lot of this lab kind of fell into place
+once a few base methods were figured out. My page eviction policy was to 
+attempt to flush and evict the first possible page, similar to a PABO policy.
+
+I did not make any changes to the API, nor is anything missing or incomplete.
+Every test so far passes.
+
+I would say I spent about 20 hours on this lab mostly because of Delete. The
+DeleteTest system test revealed a lot of problems with my HeapPage and HeapFile
+implementations from lab1 that the unit tests and lab1 system tests didn't 
+catch. Namely, my iterators were total crap to say the least. My HeapFile
+iterator didn't like working with things that spanned over multiple pages,
+and the HeapPage iterator didn't iterate over the tuples properly. I tried 
+for a long time to modify what I had until I just ended up scrapping both files
+and rewriting them with a clear slate. Since I knew what to look out for this
+second time, it was pretty easy to rewrite. I decided to keep the iterators as
+nested classes for HeapFile and HeapPage as that made more sense to me from
+an OOP perspective. After a bit of tinkering I got my project to pass all the
+tests.
