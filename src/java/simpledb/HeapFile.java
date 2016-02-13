@@ -1,6 +1,5 @@
 package simpledb;
 
-import javax.xml.crypto.Data;
 import java.io.*;
 import java.util.*;
 
@@ -36,7 +35,7 @@ public class HeapFile implements DbFile {
      * @return the File backing this HeapFile on disk.
      */
     public File getFile() {
-	return mFile;
+	    return mFile;
     }
 
     /**
@@ -49,7 +48,7 @@ public class HeapFile implements DbFile {
      * @return an ID uniquely identifying this HeapFile.
      */
     public int getId() {
-	return mFile.getAbsoluteFile().hashCode();
+	    return mFile.getAbsoluteFile().hashCode();
     }
 
     /**
@@ -58,7 +57,7 @@ public class HeapFile implements DbFile {
      * @return TupleDesc of this DbFile.
      */
     public TupleDesc getTupleDesc() {
-	return mTupleDesc;
+	    return mTupleDesc;
     }
 
     // see DbFile.java for javadocs
@@ -98,7 +97,7 @@ public class HeapFile implements DbFile {
         RandomAccessFile raf = new RandomAccessFile(mFile, "rw");
         raf.seek(offset);
 
-        raf.write(page.getPageData(), 0, BufferPool.PAGE_SIZE);
+        raf.write(page.getPageData());
         raf.close();
     }
 
@@ -163,10 +162,83 @@ public class HeapFile implements DbFile {
         return modifiedPages;
     }
 
-    // see DbFile.java for javadocs
     public DbFileIterator iterator(TransactionId tid) {
-        DbFileIterator iter = new HeapFileIterator(this, tid, numPages());
-        return iter;
+        // some code goes here
+        return new HeapFileIterator(this, tid);
+    }
+
+    /**
+     * Helper class that implements the Java Iterator for tuples on a HeapFile
+     */
+    class HeapFileIterator extends AbstractDbFileIterator {
+        Iterator<Tuple> mTupleIterator;
+        int mCurrentPageNumber;
+        TransactionId mTid;
+        HeapFile mHeapFile;
+
+        /**
+         * Set local variables for HeapFile and Transactionid
+         *
+         * @param hf
+         *            The underlying HeapFile.
+         * @param tid
+         *            The transaction ID.
+         */
+        public HeapFileIterator(HeapFile hf, TransactionId tid) {
+            mHeapFile = hf;
+            mTid = tid;
+        }
+
+
+        public void open() throws DbException, TransactionAbortedException {
+            mCurrentPageNumber = -1;
+        }
+
+        @Override
+        protected Tuple readNext() throws TransactionAbortedException,
+                DbException {
+
+            // If the current tuple iterator has no more tuples.
+            if (mTupleIterator != null && !mTupleIterator.hasNext()) {
+                mTupleIterator = null;
+            }
+
+            // Keep trying to open a tuple iterator until we find one of run out of pages.
+            while (mTupleIterator == null
+                    && mCurrentPageNumber < mHeapFile.numPages() - 1) {
+                mCurrentPageNumber++; // Go to next page.
+
+                // Get the iterator for the current page
+                HeapPageId currentPageId = new HeapPageId(mHeapFile.getId(),
+                        mCurrentPageNumber);
+
+                HeapPage currentPage = (HeapPage) Database.getBufferPool()
+                        .getPage(mTid, currentPageId, Permissions.READ_ONLY);
+                mTupleIterator = currentPage.iterator();
+
+                // Make sure the iterator has tuples in it
+                if (!mTupleIterator.hasNext())
+                    mTupleIterator = null;
+            }
+
+            // Make sure we found a tuple iterator
+            if (mTupleIterator == null)
+                return null;
+
+            // Return the next tuple.
+            return mTupleIterator.next();
+        }
+
+        public void rewind() throws DbException, TransactionAbortedException {
+            close();
+            open();
+        }
+
+        public void close() {
+            super.close();
+            mTupleIterator = null;
+            mCurrentPageNumber = Integer.MAX_VALUE;
+        }
     }
 
 }

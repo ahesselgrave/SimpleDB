@@ -13,6 +13,8 @@ public class Delete extends Operator {
     private TransactionId mTransactionId;
     private DbIterator mIterator;
 
+    private boolean fetchNextCalled = false;
+
     /**
      * Constructor specifying the transaction that this delete belongs to as
      * well as the child to read from.
@@ -56,19 +58,26 @@ public class Delete extends Operator {
      * @see BufferPool#deleteTuple
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        int deleteCount = 0;
-        while (mIterator.hasNext()) {
-            Tuple t = mIterator.next();
-            try {
-                Database.getBufferPool().deleteTuple(mTransactionId, t);
-                deleteCount++;
-            } catch (IOException e) {
-                e.printStackTrace();
+
+        if (!fetchNextCalled) {
+            int deleteCount = 0;
+            while (mIterator.hasNext()) {
+                try {
+                    Tuple t = mIterator.next();
+                    Database.getBufferPool().deleteTuple(mTransactionId, t);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    deleteCount++;
+                }
             }
-        }
-        Tuple retTuple = new Tuple(mTupleDesc);
-        retTuple.setField(0, new IntField(deleteCount));
-        return retTuple;
+
+            Tuple retTuple = new Tuple(mTupleDesc);
+            retTuple.setField(0, new IntField(deleteCount));
+            fetchNextCalled = true;
+            return retTuple;
+        } else
+            return null;
     }
 
     @Override
