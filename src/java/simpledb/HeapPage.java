@@ -20,7 +20,10 @@ public class HeapPage implements Page {
     final int numSlots;
 
     byte[] oldData;
-    private final Byte oldDataLock=new Byte((byte)0);
+    private final Byte oldDataLock= (byte) 0;
+
+    private TransactionId mLastDirtyTid = null;
+    private boolean mIsDirty = false;
 
     /**
      * Create a HeapPage from a set of bytes of data read from disk.
@@ -239,8 +242,19 @@ public class HeapPage implements Page {
      * @param t The tuple to delete
      */
     public void deleteTuple(Tuple t) throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        RecordId rid = t.getRecordId();
+
+        // If rid is null or isn't even on this page, throw exception
+        if (rid == null || !pid.equals(rid.getPageId()))
+            throw new DbException("Tuple is not on this page");
+
+        int slotNo = rid.tupleno();
+        // Check if the slot is already empty
+        if (!isSlotUsed(slotNo))
+            throw new DbException("Slot " + slotNo + " is already empty");
+
+        tuples[slotNo] = null;
+        markSlotUsed(slotNo, false);
     }
 
     /**
@@ -251,8 +265,24 @@ public class HeapPage implements Page {
      * @param t The tuple to add.
      */
     public void insertTuple(Tuple t) throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        if (!t.getTupleDesc().equals(td))
+            throw new DbException("Tupledesc doesn't match this page");
+
+        // Find an open slot to put it in
+        int slotNo = -1;
+        for (int i = 0; i < numSlots; i++) {
+            if (!isSlotUsed(i)) {
+                slotNo = i;
+                break;
+            }
+        }
+        if (slotNo == -1)
+            throw new DbException("No more empty slots on this page");
+
+        // Add tuple to page and update the record ID
+        tuples[slotNo] = t;
+        t.setRecordId(new RecordId(pid, slotNo));
+        markSlotUsed(slotNo, true);
     }
 
     /**
@@ -260,50 +290,53 @@ public class HeapPage implements Page {
      * that did the dirtying
      */
     public void markDirty(boolean dirty, TransactionId tid) {
-        // some code goes here
-	// not necessary for lab1
+        mIsDirty = dirty;
+        if (dirty)
+            mLastDirtyTid = tid;
     }
 
     /**
      * Returns the tid of the transaction that last dirtied this page, or null if the page is not dirty
      */
     public TransactionId isDirty() {
-        // some code goes here
-	// Not necessary for lab1
-        return null;      
+        return mIsDirty ? mLastDirtyTid :
+                          null;
     }
 
     /**
      * Returns the number of empty slots on this page.
      */
     public int getNumEmptySlots() {
-	BitSet bitset = BitSet.valueOf(header);
-	return numSlots - bitset.cardinality();
+        BitSet bitset = BitSet.valueOf(header);
+        return numSlots - bitset.cardinality();
     }
 
     /**
      * Returns true if associated slot on this page is filled.
      */
     public boolean isSlotUsed(int i) {
-	// Each byte is 8 bits, so divide by 8 to get the index (int math floors for us)
-	if (i / 8 > numSlots)
-	    throw new IllegalArgumentException(String.format("Checking slot %d of %d", i, numSlots));
-	try {
-	    byte b = header[i/8];
-	    int bitnum = i % 8;
-	    return (b & (0x1 << bitnum)) != 0;
-	} catch (ArrayIndexOutOfBoundsException e) {
-	    System.err.println(String.format("Accessing slot %d of %d. Length of header is %d", i, numSlots, header.length));
-	    throw e;
-	}
+        // Each byte is 8 bits, so divide by 8 to get the index (int math floors for us)
+        if (i / 8 > numSlots)
+            throw new IllegalArgumentException(String.format("Checking slot %d of %d", i, numSlots));
+        try {
+            byte b = header[i/8];
+            int bitnum = i % 8;
+            return (b & (0x1 << bitnum)) != 0;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            System.err.println(String.format("Accessing slot %d of %d. Length of header is %d", i, numSlots, header.length));
+            throw e;
+        }
     }
 
     /**
      * Abstraction to fill or clear a slot on this page.
+     * XORs the ith bit in the byte array only if we need to toggle it
      */
     private void markSlotUsed(int i, boolean value) {
-        // some code goes here
-        // not necessary for lab1
+        int bitNum = i % 8;
+
+        if (isSlotUsed(i) ^ value)
+            header[i / 8] ^= 1 << bitNum;
     }
 
     /**
@@ -311,24 +344,24 @@ public class HeapPage implements Page {
      * (note that this iterator shouldn't return tuples in empty slots!)
      */
     public Iterator<Tuple> iterator() {
-	Iterator<Tuple> iter = new Iterator<Tuple>() {
-	    private int index = 0;
-	    @Override 
-	    public boolean hasNext() {
-		return index < (tuples.length - getNumEmptySlots());
-	    }
+        Iterator<Tuple> iter = new Iterator<Tuple>() {
+            private int index = 0;
+            @Override
+            public boolean hasNext() {
+            return index < (tuples.length - getNumEmptySlots());
+            }
 
-	    @Override
-	    public Tuple next() throws NoSuchElementException{
-		return tuples[index++];
-	    }
+            @Override
+            public Tuple next() throws NoSuchElementException{
+            return tuples[index++];
+            }
 
-	    @Override
-	    public void remove() {
-		throw new UnsupportedOperationException();
-	    }
-	};
-	return iter;
+            @Override
+            public void remove() {
+            throw new UnsupportedOperationException();
+            }
+        };
+        return iter;
     }
 
 }
