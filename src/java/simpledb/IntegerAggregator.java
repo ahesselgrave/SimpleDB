@@ -122,7 +122,7 @@ public class IntegerAggregator implements Aggregator {
         Type[] types;
         String[] names;
 
-        if (mGroupByField == NO_GROUPING) {
+        if (mGroupByField == Aggregator.NO_GROUPING) {
             types = new Type[]{Type.INT_TYPE};
             names = new String[]{"aggregateValue"};
         } else {
@@ -141,7 +141,7 @@ public class IntegerAggregator implements Aggregator {
             int aggregateValue = (mOperator == Op.AVG) ? mAggregation.get(f) / mCount.get(f) :
                                                          mAggregation.get(f);
 
-            if (mAggregateField == NO_GROUPING) {
+            if (mGroupByField == Aggregator.NO_GROUPING) {
                 t.setField(0, new IntField(aggregateValue));
             } else {
                 t.setField(0, f);
