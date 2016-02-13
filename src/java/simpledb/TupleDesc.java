@@ -228,8 +228,8 @@ public class TupleDesc implements Serializable {
 	    if (tdo.numFields() != mSize) return false;
 	    
 	    for (int i = 0; i < mSize; i++) {
-		if (!tdo.getFieldType(i).equals(this.getFieldType(i))) return false;
-		if (!tdo.getFieldName(i).equals(this.getFieldName(i))) return false;
+			if (!tdo.getFieldType(i).equals(this.getFieldType(i)))
+				return false;
 	    }
 	    return true;
 	}

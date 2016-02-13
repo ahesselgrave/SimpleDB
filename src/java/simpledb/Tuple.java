@@ -28,24 +28,24 @@ public class Tuple implements Serializable {
      */
     public Tuple(TupleDesc td) {
         mSchema = td;
-	setFieldsAccordingToSchema();
+	    setFieldsAccordingToSchema();
     }
 
     public void setFieldsAccordingToSchema() {
-	mFields = new Field[mSchema.numFields()];
-	for (int i = 0; i < mSchema.numFields(); i++) {
-	    switch (mSchema.getFieldType(i)) {
-	    case INT_TYPE:
-		mFields[i] = new IntField(0);
-		break;
-	    case STRING_TYPE:
-		mFields[i] = new StringField("", MAXSTRINGSIZE);
-		break;
-	    default:
-		// cry
-		break;
-	    }
-	}
+        mFields = new Field[mSchema.numFields()];
+        for (int i = 0; i < mSchema.numFields(); i++) {
+            switch (mSchema.getFieldType(i)) {
+            case INT_TYPE:
+            mFields[i] = new IntField(0);
+            break;
+            case STRING_TYPE:
+            mFields[i] = new StringField("", MAXSTRINGSIZE);
+            break;
+            default:
+            // cry
+            break;
+            }
+        }
     }
     /**
      * @return The TupleDesc representing the schema of this tuple.

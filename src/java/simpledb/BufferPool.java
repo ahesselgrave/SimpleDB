@@ -1,6 +1,7 @@
 package simpledb;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -35,8 +36,8 @@ public class BufferPool {
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-	mPageCache = new ConcurrentHashMap<PageId, Page>();
-	mMaxPages = numPages;
+        mPageCache = new ConcurrentHashMap<PageId, Page>();
+        mMaxPages = numPages;
     }
     
     public static int getPageSize() {
@@ -64,18 +65,18 @@ public class BufferPool {
      * @param perm the requested permissions on the page
      */
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
-        throws TransactionAbortedException, DbException {
-	if (mPageCache.containsKey(pid))
-	    return mPageCache.get(pid);
-	
-	// Could not find page, so we must pull it and add to the buffer pool.
-	Page pulledPage = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
-	// Evict if we are over capacity
-	if (mPageCache.size() >= mMaxPages) {
-	    evictPage();
-	}
-	mPageCache.put(pid, pulledPage);
-	return pulledPage;
+            throws TransactionAbortedException, DbException {
+        if (mPageCache.containsKey(pid))
+            return mPageCache.get(pid);
+
+        // Could not find page, so we must pull it and add to the buffer pool.
+        Page pulledPage = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
+        // Evict if we are over capacity
+        if (mPageCache.size() >= mMaxPages) {
+            evictPage();
+        }
+        mPageCache.put(pid, pulledPage);
+        return pulledPage;
     } 
 
     /**
@@ -138,8 +139,13 @@ public class BufferPool {
      */
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for lab1
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(tableId);
+        ArrayList<Page> pageArrayList = dbFile.insertTuple(tid, t);
+
+        for (Page p : pageArrayList) {
+            p.markDirty(true, tid);
+            mPageCache.put(p.getId(), p);
+        }
     }
 
     /**
@@ -156,8 +162,13 @@ public class BufferPool {
      */
     public  void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for lab1
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
+        ArrayList<Page> pageArrayList = dbFile.deleteTuple(tid, t);
+
+        for (Page p : pageArrayList) {
+            p.markDirty(true, tid);
+            mPageCache.put(p.getId(), p);
+        }
     }
 
     /**
@@ -185,9 +196,15 @@ public class BufferPool {
      * Flushes a certain page to disk
      * @param pid an ID indicating the page to flush
      */
-    private synchronized  void flushPage(PageId pid) throws IOException {
-        // some code goes here
-        // not necessary for lab1
+    private synchronized void flushPage(PageId pid) throws IOException {
+        Page page = mPageCache.get(pid);
+        TransactionId tid = page.isDirty();
+
+        if (tid != null) {
+            DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+            dbFile.writePage(page);
+            page.markDirty(false, tid);
+        }
     }
 
     /** Write all pages of the specified transaction to disk.

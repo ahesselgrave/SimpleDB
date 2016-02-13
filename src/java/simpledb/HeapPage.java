@@ -51,7 +51,7 @@ public class HeapPage implements Page {
         header = new byte[getHeaderSize()];
         for (int i=0; i<header.length; i++) {
             header[i] = dis.readByte();
-	}
+	    }
         
         tuples = new Tuple[numSlots];
         try{
@@ -344,24 +344,23 @@ public class HeapPage implements Page {
      * (note that this iterator shouldn't return tuples in empty slots!)
      */
     public Iterator<Tuple> iterator() {
-        Iterator<Tuple> iter = new Iterator<Tuple>() {
+        return new Iterator<Tuple>() {
             private int index = 0;
             @Override
             public boolean hasNext() {
-            return index < (tuples.length - getNumEmptySlots());
+                return index < (tuples.length - getNumEmptySlots());
             }
 
             @Override
             public Tuple next() throws NoSuchElementException{
-            return tuples[index++];
+                return tuples[index++];
             }
 
             @Override
             public void remove() {
-            throw new UnsupportedOperationException();
+                throw new UnsupportedOperationException();
             }
         };
-        return iter;
     }
 
 }
