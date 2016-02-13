@@ -1,12 +1,19 @@
 package simpledb;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 /**
  * Knows how to compute some aggregate over a set of StringFields.
  */
 public class StringAggregator implements Aggregator {
 
     private static final long serialVersionUID = 1L;
-
+    private int mGroupByField;
+    private Type mGroupByType;
+    private int mAggregateField;
+    private Op mOperator;
+    private HashMap<Field, Integer> mCount;
     /**
      * Aggregate constructor
      * @param gbfield the 0-based index of the group-by field in the tuple, or NO_GROUPING if there is no grouping
@@ -17,7 +24,13 @@ public class StringAggregator implements Aggregator {
      */
 
     public StringAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
-        // some code goes here
+        if (what == Op.COUNT)
+            mOperator = what;
+        else throw new IllegalArgumentException("Operator for StringAggregator can only be Op.COUNT");
+        mGroupByField = gbfield;
+        mGroupByType = gbfieldtype;
+        mAggregateField = afield;
+        mCount = new HashMap<>();
     }
 
     /**
@@ -25,7 +38,12 @@ public class StringAggregator implements Aggregator {
      * @param tup the Tuple containing an aggregate field and a group-by field
      */
     public void mergeTupleIntoGroup(Tuple tup) {
-        // some code goes here
+        Field groupByField = mGroupByField == NO_GROUPING ? null :
+                                                            tup.getField(mGroupByField);
+        if (!mCount.containsKey(groupByField))
+            mCount.put(groupByField, 1);
+        else
+            mCount.put(groupByField, mCount.get(groupByField) + 1);
     }
 
     /**
@@ -37,8 +55,35 @@ public class StringAggregator implements Aggregator {
      *   aggregate specified in the constructor.
      */
     public DbIterator iterator() {
-        // some code goes here
-        throw new UnsupportedOperationException("please implement me for lab2");
+        ArrayList<Tuple> tupleArrayList = new ArrayList<>();
+
+        // Create TupleDesc based on field index
+        Type[] types;
+        String[] names;
+        if (mGroupByField == NO_GROUPING) {
+            types = new Type[]{Type.INT_TYPE};
+            names = new String[]{"aggregateValue"};
+        } else {
+            types = new Type[]{mGroupByType, Type.INT_TYPE};
+            names = new String[]{"groupValue", "aggregateValue"};
+        }
+        TupleDesc td = new TupleDesc(types, names);
+
+        // Iterate through all fields in the hashmap
+        for (Field f : mCount.keySet()) {
+            Tuple t = new Tuple(td);
+            int aggregateValue = mCount.get(f);
+
+            if (mAggregateField == NO_GROUPING) {
+                t.setField(0, new IntField(aggregateValue));
+            } else {
+                t.setField(0, f);
+                t.setField(1, new IntField(aggregateValue));
+            }
+
+            tupleArrayList.add(t);
+        }
+        return new TupleIterator(td, tupleArrayList);
     }
 
 }
